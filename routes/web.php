@@ -16,10 +16,12 @@ Route::post('/logout', function () {
 
 // Route yang butuh login
 Route::middleware('auth')->group(function () {
-    
-    Route::resource('pages', SuratController::class);
-    
-    Route::get('/create/{jenis}', [SuratController::class, 'buatSurat']);
 
+    Route::resource('pages', SuratController::class);
+
+    Route::get('/create/{jenis}', [SuratController::class, 'buatSurat']);
+    Route::get('/history', [SuratController::class, 'history'])->name('surat.history');
+  
+    Route::get('/cetak-surat/{id}', [SuratController::class, 'cetakSurat'])->name('cetak.surat');
     Route::post('/submit/{jenis}', [SuratController::class, 'submitLaporanEUC'])->name('submit.laporan');
 });

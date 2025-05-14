@@ -19,13 +19,32 @@ class JenisSurat extends Model
         'template_file',
     ];
 
-    // 👉 Tambahkan ini
     protected $casts = [
-        'template_fields' => 'array', // Otomatis konversi JSON <-> array
+        'template_fields' => 'array', 
     ];
 
     public function surat()
     {
         return $this->hasMany(Surat::class);
+    }
+
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            // Cek apakah kode_jenis belum diset, baru isi
+            if (empty($model->kode_jenis)) {
+                // Cari kode_jenis terakhir yang ada
+                $last = static::orderBy('kode_jenis', 'desc')->first();
+                $lastNumber = $last ? (int) str_replace('JNS-', '', $last->kode_jenis) : 0;
+
+                do {
+                    $newKode = 'JNS-' . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+                    $exists = static::where('kode_jenis', $newKode)->exists(); // Cek apakah kode sudah ada
+                    $lastNumber++;
+                } while ($exists);
+
+                $model->kode_jenis = $newKode;
+            }
+        });
     }
 }

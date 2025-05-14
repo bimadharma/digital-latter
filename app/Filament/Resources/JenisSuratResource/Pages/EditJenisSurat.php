@@ -16,4 +16,11 @@ class EditJenisSurat extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    // Override afterSave untuk redirect setelah save
+    protected function afterSave()
+    {
+        // Redirect ke halaman index setelah berhasil edit
+        return redirect($this->getResource()::getUrl('index'));
+    }
 }

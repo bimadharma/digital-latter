@@ -13,14 +13,17 @@
                     <a class="nav-link text-dark" href="{{ url('/') }}">Home</a>
                 </li>
                 <!-- Cek jika pengguna sudah login -->
-                @if(Auth::check()) 
-                    <li class="nav-item">
-                        <a class="btn btn-danger text-white mx-2 p-2" href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">Logout</a>
-                    </li>
+                @if(Auth::check())
+                <li class="nav-item">
+                    <a class="nav-link text-dark" href="{{ url('/history') }}">History</a>
+                </li>
+                <li class="nav-item">
+                    <a class="btn btn-danger text-white mx-2 p-2" href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">Logout</a>
+                </li>
                 @else
-                    <li class="nav-item">
-                        <a class="nav-link text-dark" href="{{ url('/login') }}">Login</a>
-                    </li>
+                <li class="nav-item">
+                    <a class="nav-link text-dark" href="{{ url('/login') }}">Login</a>
+                </li>
                 @endif
             </ul>
         </div>

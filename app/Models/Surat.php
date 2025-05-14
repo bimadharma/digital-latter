@@ -22,6 +22,6 @@ class Surat extends Model
     // Relasi: Surat milik satu JenisSurat
     public function jenisSurat()
     {
-        return $this->belongsTo(JenisSurat::class);
+        return $this->belongsTo(JenisSurat::class, 'jenis_surat_id');
     }
 }

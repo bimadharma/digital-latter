@@ -78,7 +78,7 @@
                     <a href="{{ $card['href'] }}" class="btn btn-success btn-sm rounded-pill px-3 text-white">
                         Buat Surat
                     </a>
-                    <a href="{{ $card['href'] }}/template" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-semibold">
+                    <a href="{{ $card['template_url'] }}" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-semibold">
                         Unduh Template
                     </a>
                 </div>

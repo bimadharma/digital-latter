@@ -4,9 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Surat;
 use App\Models\JenisSurat;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Models\HistorySurat;
+use Illuminate\Http\Request;
+
+use Illuminate\Support\Facades\Auth;
+use PhpOffice\PhpWord\TemplateProcessor;
+use Barryvdh\DomPDF\Facade\Pdf;
+
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 
 class SuratController extends Controller
@@ -31,6 +37,7 @@ class SuratController extends Controller
                 'title' => $jenis->nama_jenis,
                 'desc' => $jenis->deskripsi,
                 'href' => '/create/' . $jenis->kode_jenis,
+                'template_url' => asset('storage/' . $jenis->template_file),
             ];
         });
 
@@ -62,19 +69,17 @@ class SuratController extends Controller
     // Fungsi untuk menampilkan form surat berdasarkan jenis
     public function buatSurat($jenis)
     {
-        // Ambil jenis surat berdasarkan kode_jenis
         $jenisSurat = JenisSurat::where('kode_jenis', $jenis)->first();
 
         if (!$jenisSurat) {
             abort(404, 'Jenis surat tidak ditemukan.');
         }
 
-        // Ambil template_fields dalam bentuk array
         $templateFields = $jenisSurat->template_fields;
 
-        // Kirim data template_fields ke view
-        return view("pages.form.form-laporan", compact('templateFields', 'jenis'));
+        return view("pages.form.form-laporan", compact('templateFields', 'jenisSurat', 'jenis'));
     }
+
 
 
     public function submitLaporanEUC(Request $request, $jenis)
@@ -101,5 +106,64 @@ class SuratController extends Controller
         ]);
 
         return redirect('/')->with('success', 'Surat berhasil disimpan.');
+    }
+
+    public function history()
+    {
+        $suratList = Surat::with('jenisSurat')
+            ->where('user_id', Auth::id())
+            ->latest()
+            ->get();
+
+        return view('pages.history', compact('suratList'));
+    }
+
+
+    public function cetakSurat(Request $request, $id)
+    {
+        $format = $request->query('format', 'pdf');
+        $surat = Surat::with('jenisSurat')->findOrFail($id);
+        $jenisSurat = $surat->jenisSurat;
+
+        // Ambil template dan isi data
+        $templatePath = storage_path('app/public/' . $jenisSurat->template_file);
+        $isiData = json_decode($surat->isi_data, true);
+
+        if (!file_exists($templatePath)) {
+            abort(404, 'Template surat tidak ada.');
+        }
+
+        // Load dan proses template Word
+        $templateProcessor = new TemplateProcessor($templatePath);
+        foreach ($isiData as $key => $value) {
+            $templateProcessor->setValue($key, $value);
+        }
+
+        // Simpan file hasil
+        $filename = Str::slug($jenisSurat->nama_jenis) . '-' . $surat->id . '.' . $format;
+        $savePath = storage_path('app/public/generated/' . $filename);
+
+        if ($format === 'docx') {
+            $templateProcessor->saveAs($savePath);
+            return response()->download($savePath)->deleteFileAfterSend(true);
+        } elseif ($format === 'pdf') {
+            // Simpan sementara ke docx
+            $tempDocx = storage_path('app/public/generated/temp-' . $surat->id . '.docx');
+            $templateProcessor->saveAs($tempDocx);
+
+            // Convert to HTML manually (PhpWord tidak mendukung PDF langsung dari TemplateProcessor)
+            $phpWord = \PhpOffice\PhpWord\IOFactory::load($tempDocx);
+            $xmlWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML');
+
+            $htmlPath = storage_path("app/public/generated/temp-{$surat->id}.html");
+            $xmlWriter->save($htmlPath);
+            $html = file_get_contents($htmlPath);
+
+            // Gunakan dompdf untuk konversi HTML ke PDF
+            $pdf = PDF::loadHTML($html)->setPaper('A4', 'portrait');
+            return $pdf->download(Str::slug($jenisSurat->nama_jenis) . '-' . $surat->id . '.pdf');
+        }
+
+        abort(400, 'Format tidak didukung.');
     }
 }
