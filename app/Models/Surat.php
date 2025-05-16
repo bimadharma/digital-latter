@@ -16,7 +16,8 @@ class Surat extends Model
         'nomor_surat',
         'judul_surat',
         'isi_data',
-        'file_surat',
+        'file_docx',
+        'file_pdf',
     ];
 
     // Relasi: Surat milik satu JenisSurat

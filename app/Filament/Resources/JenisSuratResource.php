@@ -43,18 +43,36 @@ class JenisSuratResource extends Resource
                     ->helperText('Unggah file template dalam format .doc atau .docx saja.'),
 
 
-                // Repeater hanya untuk field_name, tanpa field_value
-                Forms\Components\Repeater::make('template_fields')
+                    Forms\Components\Repeater::make('template_fields')
                     ->label('Template Fields')
                     ->schema([
                         Forms\Components\TextInput::make('field_name')
                             ->label('Nama Field')
+                            ->required(),
+                
+                        Forms\Components\Select::make('field_type')
+                            ->label('Tipe Field')
+                            ->options([
+                                'text' => 'Text Biasa',
+                                'textarea' => 'Textarea (Multi Baris)',
+                                'table' => 'Tabel Dinamis',
+                            ])
                             ->required()
-                            ->default('') // agar selalu kosong
+                            ->default('text')
+                            ->reactive(),
+                
+                        // TABLE
+                        Forms\Components\Repeater::make('columns')
+                            ->label('Kolom (khusus jika tabel)')
+                            ->visible(fn($get) => $get('field_type') === 'table')
+                            ->schema([
+                                Forms\Components\TextInput::make('column_name')
+                                    ->label('Nama Kolom')
+                                    ->required(),
+                            ]),
                     ])
                     ->createItemButtonLabel('Tambah Field Baru')
-                    ->maxItems(10)
-                    ->helperText('Tambahkan lebih banyak field sesuai kebutuhan.')
+                    ->helperText('Pilih jenis field sesuai dengan struktur templatemu.')                
             ]);
     }
 

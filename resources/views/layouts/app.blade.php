@@ -9,6 +9,7 @@
 
     <!-- Bootstrap CSS manual -->
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/dataTables.bootstrap5.min.css') }}">
     <link href="{{ asset('css/style.css') }}" rel="stylesheet">
 </head>
 
@@ -20,8 +21,16 @@
         @yield('content')
     </div>
 
-    <!-- Bootstrap JS manual -->
+    <!-- Javascript -->
+    <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
+    <script src="{{ asset('js/jquery.repeater.min.js') }}"></script>
     <script src="{{ asset('js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ asset('js/dataTables.bootstrap5.min.js') }}"></script>
+
+    @yield('scripts')
+    @stack('scripts')
+
 </body>
 
 </html>
