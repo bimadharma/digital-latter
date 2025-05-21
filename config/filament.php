@@ -85,5 +85,17 @@ return [
     */
 
     'livewire_loading_delay' => 'default',
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication Guard
+    |--------------------------------------------------------------------------
+    |
+    | This option allows you to define the authentication guard that Filament
+    | will use. This is useful if you have a separate guard for admins.
+    |
+    */
 
+    'auth' => [
+        'guard' => 'admin',
+    ],
 ];

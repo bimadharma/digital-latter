@@ -86,9 +86,7 @@ class SuratController extends Controller
     public function submitLaporanEUC(Request $request, $jenis)
     {
         $jenisSurat = JenisSurat::where('kode_jenis', $jenis)->firstOrFail();
-
         $isiData = $request->except('_token');
-        $encodedIsiData = json_encode($isiData);
 
         // Inisialisasi template
         $templatePath = storage_path('app/public/' . $jenisSurat->template_file);
@@ -99,23 +97,34 @@ class SuratController extends Controller
         $templateProcessor = new TemplateProcessor($templatePath);
 
         foreach ($isiData as $key => $value) {
-            if (is_array($value)) {
-                // Handle table
+            if ($request->hasFile($key)) {
+                $path = $request->file($key)->store('signatures', 'public');
+                $fullPath = storage_path('app/public/' . $path);
+
+                $templateProcessor->setImageValue($key, [
+                    'path' => $fullPath,
+                    'width' => 170,
+                    'height' => 113,
+                    'ratio' => true,
+                ]);
+
+                // Update isiData agar path signature tersimpan di database
+                $isiData[$key] = $path;
+            } elseif (is_array($value)) {
                 if (isset($value[0]) && is_array($value[0])) {
                     $firstColumnKey = array_key_first($value[0]);
-
-                    // Tambahkan nomor urut ke setiap baris
                     foreach ($value as $index => &$row) {
-                        $row['no'] = $index + 1; // no mulai dari 1
+                        $row['no'] = $index + 1;
                     }
-
                     $templateProcessor->cloneRowAndSetValues($firstColumnKey, $value);
                 }
             } else {
-                // Handle text or textarea: newline → baris baru di Word
                 $templateProcessor->setValue($key, str_replace("\n", '<w:br/>', $value));
             }
         }
+
+        // ENCODE di sini setelah semua file/array ditangani
+        $encodedIsiData = json_encode($isiData);
 
         // Buat nama file
         $slugNama = Str::slug($jenisSurat->nama_jenis);
@@ -129,25 +138,18 @@ class SuratController extends Controller
         // Simpan DOCX
         $templateProcessor->saveAs($docxPath);
 
-        // Konversi ke PDF menggunakan LibreOffice (CLI)
+        // Konversi ke PDF dengan LibreOffice CLI
         $command = '"C:\\Program Files\\LibreOffice\\program\\soffice.exe" --headless --convert-to pdf --outdir ' . escapeshellarg(dirname($pdfPath)) . ' ' . escapeshellarg($docxPath);
         exec($command, $output, $resultCode);
-
 
         if ($resultCode !== 0 || !file_exists($pdfPath)) {
             return back()->with('error', 'Gagal mengonversi DOCX ke PDF.');
         }
 
-        // Hitung total surat dalam tabel 'surat'
+        // Buat nomor surat
         $jumlahSurat = Surat::count();
-
-        // Tambah 1 untuk nomor surat baru
         $newNumber = str_pad($jumlahSurat + 1, 2, '0', STR_PAD_LEFT);
-
-        // Format nomor surat
         $nomorSurat = "SURAT-EXIM-{$newNumber}";
-
-
 
         // Simpan ke database
         $surat = Surat::create([
@@ -169,6 +171,7 @@ class SuratController extends Controller
 
         return redirect('/history')->with('success', 'Surat berhasil disimpan dan file berhasil dikonversi ke PDF.');
     }
+
 
 
 

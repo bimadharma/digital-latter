@@ -3,59 +3,76 @@
 @section('content')
 <div class="container">
     <h2 class="mt-5 text-center fw-bold">{{ $jenisSurat->nama_jenis }}</h2>
-
-    <form method="POST" action="{{ route('submit.laporan', ['jenis' => $jenis]) }}" class="my-5" id="form-surat">
-    @csrf
-    @foreach ($templateFields as $field)
-        @php
+    <div class="my-5 shadow-lg">
+        <div class="bg-primary text-white p-3 rounded-top d-flex align-items-center gap-2">
+            <i class="bi bi-pencil-square"></i>
+            <h6 class="mb-0">{{ $jenisSurat->nama_jenis }}</h6>
+        </div>
+        <form method="POST" enctype="multipart/form-data" action="{{ route('submit.laporan', ['jenis' => $jenis]) }}" class="bg-white p-4 rounded-bottom" id="form-surat">
+            @csrf
+            @foreach ($templateFields as $field)
+            @php
             $fieldName = $field['field_name'];
             $fieldLabel = ucwords(str_replace(['_', '-'], ' ', $fieldName));
-        @endphp
+            @endphp
 
-        {{-- TEXT --}}
-        @if ($field['field_type'] === 'text')
-        <div class="mb-3">
-            <label for="{{ $fieldName }}">{{ $fieldLabel }}</label>
-            <input type="text"
-                name="{{ $fieldName }}"
-                id="{{ $fieldName }}"
-                class="form-control"
-                placeholder="Tulis {{ $fieldLabel }}"
-                required>
-        </div>
+            {{-- TEXT --}}
+            @if ($field['field_type'] === 'text')
+            <div class="mb-3">
+                <label for="{{ $fieldName }}">{{ $fieldLabel }}</label>
+                <input type="text"
+                    name="{{ $fieldName }}"
+                    id="{{ $fieldName }}"
+                    class="form-control"
+                    placeholder="Tulis {{ $fieldLabel }}"
+                    required>
+            </div>
 
-        {{-- TEXTAREA --}}
-        @elseif ($field['field_type'] === 'textarea')
-        <div class="mb-3">
-            <label for="{{ $fieldName }}">{{ $fieldLabel }} (Textarea)</label>
-            <textarea name="{{ $fieldName }}" id="{{ $fieldName }}" rows="5"
-                class="form-control"
-                placeholder="Tulis {{ $fieldLabel }} di sini..."></textarea>
-        </div>
+            {{-- TEXTAREA --}}
+            @elseif ($field['field_type'] === 'textarea')
+            <div class="mb-3">
+                <label for="{{ $fieldName }}">{{ $fieldLabel }} (Textarea)</label>
+                <textarea name="{{ $fieldName }}" id="{{ $fieldName }}" rows="5"
+                    class="form-control"
+                    placeholder="Tulis {{ $fieldLabel }} di sini..."></textarea>
+            </div>
 
-        {{-- TABLE --}}
-        @elseif ($field['field_type'] === 'table')
-        <h5>{{ $fieldLabel }} (Tabel)</h5>
-        <div class="repeater">
-            <table class="table">
-                <thead>
-                    <tr>
-                        @foreach ($field['columns'] as $col)
+            {{-- SIGNATURE --}}
+            @elseif ($field['field_type'] === 'signature')
+            <div class="mb-3">
+                <label for="{{ $fieldName }}">{{ $fieldLabel }} (Tanda Tangan)</label>
+                <input type="file"
+                    name="{{ $fieldName }}"
+                    id="{{ $fieldName }}"
+                    accept="image/*"
+                    class="form-control"
+                    required>
+            </div>
+
+
+            {{-- TABLE --}}
+            @elseif ($field['field_type'] === 'table')
+            <h5>{{ $fieldLabel }} (Tabel)</h5>
+            <div class="repeater">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            @foreach ($field['columns'] as $col)
                             @php
-                                $columnName = $col['column_name'];
-                                $columnLabel = ucwords(str_replace(['_', '-'], ' ', $columnName));
+                            $columnName = $col['column_name'];
+                            $columnLabel = ucwords(str_replace(['_', '-'], ' ', $columnName));
                             @endphp
                             <th>{{ $columnLabel }}</th>
-                        @endforeach
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody data-repeater-list="{{ $fieldName }}">
-                    <tr data-repeater-item>
-                        @foreach ($field['columns'] as $col)
+                            @endforeach
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody data-repeater-list="{{ $fieldName }}">
+                        <tr data-repeater-item>
+                            @foreach ($field['columns'] as $col)
                             @php
-                                $columnName = $col['column_name'];
-                                $columnLabel = ucwords(str_replace(['_', '-'], ' ', $columnName));
+                            $columnName = $col['column_name'];
+                            $columnLabel = ucwords(str_replace(['_', '-'], ' ', $columnName));
                             @endphp
                             <td>
                                 <input type="text"
@@ -63,23 +80,24 @@
                                     class="form-control"
                                     placeholder="{{ $columnLabel }}">
                             </td>
-                        @endforeach
-                        <td>
-                            <button data-repeater-delete type="button" class="btn btn-danger btn-sm">Hapus</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <button data-repeater-create type="button" class="btn btn-secondary my-2">Tambah Baris</button>
-        </div>
-        @endif
-    @endforeach
+                            @endforeach
+                            <td>
+                                <button data-repeater-delete type="button" class="btn btn-danger btn-sm">Hapus</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button data-repeater-create type="button" class="btn btn-secondary mb-4">Tambah Baris</button>
+            </div>
+            @endif
+            @endforeach
 
-    <div class="d-flex justify-content-start gap-2 mt-4">
-        <button type="submit" class="btn btn-success px-4 rounded-pill" id="submit-btn">Submit</button>
-        <a href="{{ url()->previous() }}" class="btn btn-secondary rounded-pill">Kembali</a>
+            <div class="d-flex justify-content-start gap-2 mt-4">
+                <button type="submit" class="btn btn-success px-4 rounded-pill" id="submit-btn">Submit</button>
+                <a href="{{ url()->previous() }}" class="btn btn-secondary rounded-pill">Kembali</a>
+            </div>
+        </form>
     </div>
-</form>
 </div>
 
 {{-- Overlay Fullscreen --}}

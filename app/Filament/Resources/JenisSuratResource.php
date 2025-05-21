@@ -2,16 +2,17 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\JenisSuratResource\Pages;
-use App\Filament\Resources\JenisSuratResource\RelationManagers;
-use App\Models\JenisSurat;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Forms\Form;
+use App\Models\JenisSurat;
 use Filament\Tables\Table;
+use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Resources\JenisSuratResource\Pages;
+use App\Filament\Resources\JenisSuratResource\RelationManagers;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 
 class JenisSuratResource extends Resource
@@ -39,28 +40,32 @@ class JenisSuratResource extends Resource
                         'application/msword', // .doc
                         'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
                     ])
+                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
+                        return $file->getClientOriginalName(); // Gunakan nama asli file
+                    })
                     ->required()
                     ->helperText('Unggah file template dalam format .doc atau .docx saja.'),
 
 
-                    Forms\Components\Repeater::make('template_fields')
+                Forms\Components\Repeater::make('template_fields')
                     ->label('Template Fields')
                     ->schema([
                         Forms\Components\TextInput::make('field_name')
                             ->label('Nama Field')
                             ->required(),
-                
+
                         Forms\Components\Select::make('field_type')
                             ->label('Tipe Field')
                             ->options([
                                 'text' => 'Text Biasa',
                                 'textarea' => 'Textarea (Multi Baris)',
                                 'table' => 'Tabel Dinamis',
+                                'signature' => 'Tanda Tangan (Upload Gambar)',
                             ])
                             ->required()
                             ->default('text')
                             ->reactive(),
-                
+
                         // TABLE
                         Forms\Components\Repeater::make('columns')
                             ->label('Kolom (khusus jika tabel)')
@@ -69,10 +74,10 @@ class JenisSuratResource extends Resource
                                 Forms\Components\TextInput::make('column_name')
                                     ->label('Nama Kolom')
                                     ->required(),
-                            ]),
+                            ]),                
                     ])
-                    ->createItemButtonLabel('Tambah Field Baru')
-                    ->helperText('Pilih jenis field sesuai dengan struktur templatemu.')                
+                    ->addActionLabel('Tambah Field Baru')
+                    ->helperText('Pilih jenis field sesuai dengan struktur templatemu.')
             ]);
     }
 

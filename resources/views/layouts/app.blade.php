@@ -10,6 +10,7 @@
     <!-- Bootstrap CSS manual -->
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/dataTables.bootstrap5.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/bootstrap-icons.css') }}">
     <link href="{{ asset('css/style.css') }}" rel="stylesheet">
 </head>
 
