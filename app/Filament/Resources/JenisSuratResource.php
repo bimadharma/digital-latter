@@ -14,6 +14,10 @@ use App\Filament\Resources\JenisSuratResource\Pages;
 use App\Filament\Resources\JenisSuratResource\RelationManagers;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
+use Illuminate\Support\Str;
+use ZipArchive;
+
+
 
 class JenisSuratResource extends Resource
 {
@@ -26,60 +30,109 @@ class JenisSuratResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Hidden::make('kode_jenis'),
-                Forms\Components\TextInput::make('nama_jenis')
-                    ->required(),
-                Forms\Components\TextInput::make('deskripsi')
-                    ->required(),
 
-                // Upload file Word
+                Forms\Components\TextInput::make('nama_jenis')->required(),
+
+                Forms\Components\TextInput::make('deskripsi')->required(),
+
                 Forms\Components\FileUpload::make('template_file')
                     ->label('Template File (Word)')
-                    ->disk('public') // Simpan di storage/app/public
-                    ->directory('template-files') // Folder tujuan
+                    ->disk('public')
+                    ->directory('template-files')
                     ->acceptedFileTypes([
-                        'application/msword', // .doc
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
+                        'application/msword',
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                     ])
-                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
-                        return $file->getClientOriginalName(); // Gunakan nama asli file
-                    })
+                    ->getUploadedFileNameForStorageUsing(fn(TemporaryUploadedFile $file) => $file->getClientOriginalName())
                     ->required()
-                    ->helperText('Unggah file template dalam format .doc atau .docx saja.'),
+                    ->helperText('Unggah file template dalam format .doc atau .docx saja.')
+                    ->afterStateUpdated(function (callable $set, callable $get, $state) {
+        
+                        if (!$state instanceof TemporaryUploadedFile) {
+                            return;
+                        }
 
+                        $path = $state->getRealPath();
+                        $zip = new ZipArchive;
+
+                        if ($zip->open($path) === true) {
+                            $xml = $zip->getFromName('word/document.xml');
+                            $zip->close();
+
+                            // Gabungkan semua isi <w:t>
+                            preg_match_all('/<w:t[^>]*>(.*?)<\/w:t>/', $xml, $textMatches);
+                            $fullText = implode('', $textMatches[1]);
+
+                            // Ambil placeholder ${...} dari teks gabungan
+                            preg_match_all('/\$\{\s*([a-zA-Z0-9_\-\s]+)\}/', $fullText, $matches);
+                            $keys = array_unique(array_map('trim', $matches[1]));
+
+                            if (count($keys) > 0) {
+                                $fields = [];
+
+                                foreach ($keys as $key) {
+                                    $fields[] = [
+                                        'field_name' => $key,
+                                        'field_type' => 'text',
+                                        'columns' => [],
+                                    ];
+                                }
+
+                                // Set template_fields kosong dulu agar Livewire reset state-nya
+                                $set('template_fields', []);
+
+                                // Paksa render ulang dengan memberi nilai baru
+                                $set('template_fields', [[
+                                    'section_title' => 'Isi Form',
+                                    'fields' => $fields,
+                                ]]);
+                            }
+                        }
+                    }),
 
                 Forms\Components\Repeater::make('template_fields')
-                    ->label('Template Fields')
+                    ->label('Bagian Template')
                     ->schema([
-                        Forms\Components\TextInput::make('field_name')
-                            ->label('Nama Field')
+                        Forms\Components\TextInput::make('section_title')
+                            ->label('Judul Bagian')
                             ->required(),
 
-                        Forms\Components\Select::make('field_type')
-                            ->label('Tipe Field')
-                            ->options([
-                                'text' => 'Text Biasa',
-                                'textarea' => 'Textarea (Multi Baris)',
-                                'table' => 'Tabel Dinamis',
-                                'signature' => 'Tanda Tangan (Upload Gambar)',
-                            ])
-                            ->required()
-                            ->default('text')
-                            ->reactive(),
-
-                        // TABLE
-                        Forms\Components\Repeater::make('columns')
-                            ->label('Kolom (khusus jika tabel)')
-                            ->visible(fn($get) => $get('field_type') === 'table')
+                        Forms\Components\Repeater::make('fields')
+                            ->label('Field dalam Bagian')
                             ->schema([
-                                Forms\Components\TextInput::make('column_name')
-                                    ->label('Nama Kolom')
+                                Forms\Components\TextInput::make('field_name')
+                                    ->label('Nama Field')
                                     ->required(),
-                            ]),                
+
+                                Forms\Components\Select::make('field_type')
+                                    ->label('Tipe Field')
+                                    ->options([
+                                        'text' => 'Text Biasa',
+                                        'textarea' => 'Textarea (Multi Baris)',
+                                        'table' => 'Tabel Dinamis',
+                                        'signature' => 'Tanda Tangan (Upload Gambar)',
+                                    ])
+                                    ->required()
+                                    ->default('text')
+                                    ->reactive(),
+
+                                Forms\Components\Repeater::make('columns')
+                                    ->label('Kolom (khusus jika tabel)')
+                                    ->visible(fn($get) => $get('field_type') === 'table')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('column_name')
+                                            ->label('Nama Kolom')
+                                            ->required(),
+                                    ]),
+                            ])
+                            ->addActionLabel('Tambah Field')
+                            ->helperText('Tambah field sesuai isi bagian ini.'),
                     ])
-                    ->addActionLabel('Tambah Field Baru')
-                    ->helperText('Pilih jenis field sesuai dengan struktur templatemu.')
+                    ->addActionLabel('Tambah Bagian Template')
+                    ->helperText('Setiap bagian akan menjadi section berbeda dalam formulir.'),
             ]);
     }
+
 
 
     public static function table(Table $table): Table

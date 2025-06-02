@@ -17,10 +17,8 @@ class EditJenisSurat extends EditRecord
         ];
     }
 
-    // Override afterSave untuk redirect setelah save
-    protected function afterSave()
+    protected function getRedirectUrl(): string
     {
-        // Redirect ke halaman index setelah berhasil edit
-        return redirect($this->getResource()::getUrl('index'));
+        return $this->getResource()::getUrl('index');
     }
 }

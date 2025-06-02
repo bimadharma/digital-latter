@@ -11,21 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Di dalam migration
         Schema::table('surat', function (Blueprint $table) {
             $table->string('file_docx')->nullable();
             $table->string('file_pdf')->nullable();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('surat', function (Blueprint $table) {
-            $table->dropColumn('file_docx');
-            $table->dropColumn('file_pdf');
+            $table->dropColumn(['file_docx', 'file_pdf']);
         });
     }
 };

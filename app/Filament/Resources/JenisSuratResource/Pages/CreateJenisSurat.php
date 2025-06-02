@@ -9,10 +9,8 @@ class CreateJenisSurat extends CreateRecord
 {
     protected static string $resource = JenisSuratResource::class;
 
-    // Override the afterSave method to redirect
-    protected function afterSave()
+    protected function getRedirectUrl(): string
     {
-        // Redirect to the list page after saving the record
-        return redirect($this->getResource()::getUrl('index'));
+        return $this->getResource()::getUrl('index');
     }
 }
