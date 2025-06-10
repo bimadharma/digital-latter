@@ -28,6 +28,12 @@
                     {{ formatLabel($section['section_title']) }}
                 </h6>
 
+                {{-- Tambahkan input khusus Nama Surat --}}
+                <div class="mb-3">
+                    <label for="nama_surat" class="form-label fw-semibold small">Nama Surat <span class="text-danger">*</span></label>
+                    <input type="text" name="nama_surat" id="nama_surat" class="form-control" placeholder="Masukkan nama surat" required>
+                </div>
+
                 @foreach ($section['fields'] as $field)
                 @php
                 $fieldName = $field['field_name'];
@@ -87,6 +93,71 @@
                         <i class="bi bi-plus-circle"></i> Tambah Baris
                     </button>
                 </div>
+
+            
+                {{-- GROUPED TABLE --}}
+                @elseif ($field['field_type'] === 'grouped_table')
+                <h6 class="fw-bold mt-3">{{ $fieldLabel }} (Tabel dengan Kolom Utama)</h6>
+
+                <div class="repeater-grouped">
+                    <div data-repeater-list="{{ $fieldName }}">
+                        @foreach ($field['grouped_columns'] as $groupIndex => $group)
+                        <div data-repeater-item class="mb-4 border rounded p-3 shadow-sm" data-columns='@json($group["rows"])'>
+
+                            {{-- Kolom Utama --}}
+                            <div class="mb-2">
+                                <label class="form-label fw-semibold small">Nama Kelompok (group_title) <span class="text-danger">*</span></label>
+                                <input type="text" name="grouped_table[{{ $groupIndex }}][group_title]" class="form-control" value="{{ $group['group_title'] ?? '' }}" required>
+                            </div>
+
+                            {{-- Tabel --}}
+                            <table class="table table-bordered table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        @foreach ($group['rows'] as $row)
+                                        <th>{{ $row['value1'] }}</th>
+                                        @endforeach
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="dynamic-rows">
+                                    <tr>
+                                        @foreach ($group['rows'] as $index => $row)
+                                        <td>
+                                            <input type="text"
+                                                name="grouped_table[{{ $groupIndex }}][rows][0][{{ Str::snake($row['value1']) }}]"
+                                                class="form-control form-control-sm"
+                                                placeholder="{{ $row['value1'] }}">
+                                        </td>
+                                        @endforeach
+                                        <td>
+                                            <button type="button" class="btn btn-outline-danger btn-sm delete-row">
+                                                <i class="bi bi-trash"></i> Hapus
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <button type="button" class="btn btn-outline-primary btn-sm mb-2 add-row-btn">
+                                <i class="bi bi-plus-circle"></i> Tambah Baris
+                            </button>
+
+                            {{-- Hapus Kelompok --}}
+                            <div class="mt-2">
+                                <button data-repeater-delete type="button" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-x-circle"></i> Hapus Kelompok
+                                </button>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+
+                    {{-- Tambah Kelompok Baru --}}
+                    <button data-repeater-create type="button" class="btn btn-outline-success btn-sm mt-2">
+                        <i class="bi bi-plus-circle-fill"></i> Tambah Kelompok Baru
+                    </button>
+                </div>
                 @endif
                 @endforeach
             </div>
@@ -118,6 +189,62 @@
 @endsection
 
 @section('scripts')
+<script>
+    $(document).ready(function() {
+        // Inisialisasi Repeater untuk grup
+        $('.repeater-grouped').repeater({
+            initEmpty: false,
+            defaultValues: {},
+            show: function () {
+                $(this).slideDown();
+            },
+            hide: function (deleteElement) {
+                if (confirm('Yakin ingin menghapus kelompok ini?')) {
+                    $(this).slideUp(deleteElement);
+                }
+            }
+        });
+
+        // Tombol Tambah Baris
+        $(document).on('click', '.add-row-btn', function () {
+            const groupItem = $(this).closest('[data-repeater-item]');
+            const tableBody = groupItem.find('tbody.dynamic-rows');
+            const columns = JSON.parse(groupItem.attr('data-columns') || '[]');
+            const groupIndex = groupItem.index(); // Index grup saat ini
+            const rowIndex = tableBody.find('tr').length;
+
+            let rowHtml = '<tr>';
+            columns.forEach(col => {
+                const colKey = col.value1.toLowerCase().replace(/\s+/g, '_');
+                rowHtml += `
+                    <td>
+                        <input type="text" name="${groupItem.closest('[data-repeater-list]').attr('data-repeater-list')}[${groupIndex}][rows][${rowIndex}][${colKey}]" 
+                               class="form-control form-control-sm" placeholder="${col.value1}">
+                    </td>
+                `;
+            });
+
+            rowHtml += `
+                <td>
+                    <button type="button" class="btn btn-outline-danger btn-sm delete-row">
+                        <i class="bi bi-trash"></i> Hapus
+                    </button>
+                </td>
+            `;
+            rowHtml += '</tr>';
+
+            tableBody.append(rowHtml);
+        });
+
+        // Tombol Hapus Baris
+        $(document).on('click', '.delete-row', function () {
+            if (confirm('Yakin ingin menghapus baris ini?')) {
+                $(this).closest('tr').remove();
+            }
+        });
+    });
+</script>
+
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const form = document.getElementById('form-surat');

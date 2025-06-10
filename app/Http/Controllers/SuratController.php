@@ -111,12 +111,42 @@ class SuratController extends Controller
                 // Update isiData agar path signature tersimpan di database
                 $isiData[$key] = $path;
             } elseif (is_array($value)) {
-                if (isset($value[0]) && is_array($value[0])) {
+                // Cek jika ini array berisi array biasa (tabel-baru)
+                if (isset($value[0]) && is_array($value[0]) && !isset($value[0]['rows'])) {
                     $firstColumnKey = array_key_first($value[0]);
                     foreach ($value as $index => &$row) {
                         $row['no'] = $index + 1;
                     }
                     $templateProcessor->cloneRowAndSetValues($firstColumnKey, $value);
+
+                    // Cek jika ini grouped_table
+                } elseif (isset($value[0]['rows'])) {
+                    $mergedRows = [];
+                    $allKeys = []; // Kumpulan semua key dari rows
+
+                    foreach ($value as $groupItem) {
+                        $groupTitle = $groupItem['group_title'] ?? '';
+
+                        foreach ($groupItem['rows'] ?? [] as $row) {
+                            // Tambahkan group_title dan no
+                            $row['group_title'] = $groupTitle;
+                            $row['no'] = count($mergedRows) + 1;
+                            $mergedRows[] = $row;
+
+                            // Simpan semua key agar bisa cloneRow dinamis
+                            foreach ($row as $key => $val) {
+                                $allKeys[$key] = true;
+                            }
+                        }
+                    }
+
+                    if (!empty($mergedRows)) {
+                        // Ambil key pertama untuk cloneRowAndSetValues
+                        $firstKey = array_key_first($mergedRows[0]);
+                        // Dump isi data untuk dicek
+                        dd($mergedRows);
+                        $templateProcessor->cloneRowAndSetValues($firstKey, $mergedRows);
+                    }
                 }
             } else {
                 $templateProcessor->setValue($key, str_replace("\n", '<w:br/>', $value));
@@ -165,7 +195,7 @@ class SuratController extends Controller
         HistorySurat::create([
             'surat_id' => $surat->id,
             'user_id' => Auth::id(),
-            'aksi' => 'buat',
+            'aksi' => $request->input('nama_surat', $jenisSurat->nama_jenis),
             'waktu_aksi' => now(),
         ]);
 
@@ -177,12 +207,12 @@ class SuratController extends Controller
 
     public function history()
     {
-        $suratList = Surat::with('jenisSurat')
+        $historyList = HistorySurat::with(['surat.jenisSurat'])
             ->where('user_id', Auth::id())
-            ->latest()
+            ->latest('waktu_aksi')
             ->get();
 
-        return view('pages.history', compact('suratList'));
+        return view('pages.history', compact('historyList'));
     }
 
 

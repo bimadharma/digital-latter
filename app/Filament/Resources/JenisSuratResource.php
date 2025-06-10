@@ -97,25 +97,27 @@ class JenisSuratResource extends Resource
                             ->label('Judul Bagian')
                             ->required(),
 
-                        Forms\Components\Repeater::make('fields')
+                            Forms\Components\Repeater::make('fields')
                             ->label('Field dalam Bagian')
                             ->schema([
                                 Forms\Components\TextInput::make('field_name')
                                     ->label('Nama Field')
                                     ->required(),
-
+                        
                                 Forms\Components\Select::make('field_type')
                                     ->label('Tipe Field')
                                     ->options([
                                         'text' => 'Text Biasa',
                                         'textarea' => 'Textarea (Multi Baris)',
                                         'table' => 'Tabel Dinamis',
+                                        'grouped_table' => 'Tabel dengan Kolom Utama',
                                         'signature' => 'Tanda Tangan (Upload Gambar)',
                                     ])
                                     ->required()
                                     ->default('text')
                                     ->reactive(),
-
+                        
+                                // Existing table columns
                                 Forms\Components\Repeater::make('columns')
                                     ->label('Kolom (khusus jika tabel)')
                                     ->visible(fn($get) => $get('field_type') === 'table')
@@ -124,9 +126,28 @@ class JenisSuratResource extends Resource
                                             ->label('Nama Kolom')
                                             ->required(),
                                     ]),
+                        
+                                // New grouped table structure
+                                Forms\Components\Repeater::make('grouped_columns')
+                                    ->label('Kelompok Data (khusus jika tabel dengan kolom utama)')
+                                    ->visible(fn($get) => $get('field_type') === 'grouped_table')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('group_title')
+                                            ->label('Judul Kelompok (Kolom Utama)')
+                                            ->required(),
+
+                                            Forms\Components\Repeater::make('rows')
+                                            ->label('Baris Data dalam Kelompok')
+                                            ->schema([
+                                                Forms\Components\TextInput::make('value1')
+                                                    ->label('Nama Kolom'),
+                                            ])
+                                            ->addActionLabel('Tambah Baris')
+                                    ])
+                                    ->addActionLabel('Tambah Kelompok'),
                             ])
                             ->addActionLabel('Tambah Field')
-                            ->helperText('Tambah field sesuai isi bagian ini.'),
+                            ->helperText('Tambah field sesuai isi bagian ini.'),                        
                     ])
                     ->addActionLabel('Tambah Bagian Template')
                     ->helperText('Setiap bagian akan menjadi section berbeda dalam formulir.'),
