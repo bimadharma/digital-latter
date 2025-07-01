@@ -1,4 +1,5 @@
-<?php 
+<?php
+
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SuratController;
@@ -31,4 +32,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/history', [SuratController::class, 'history'])->name('surat.history');
     Route::get('/cetak-surat/{id}', [SuratController::class, 'cetakSurat'])->name('cetak.surat');
     Route::post('/submit/{jenis}', [SuratController::class, 'submitLaporanEUC'])->name('submit.laporan');
+
+    Route::get('/surat/{id}/edit', [SuratController::class, 'edit'])->name('edit.surat');
+    // web.php
+Route::put('/surat/{id}/update', [SuratController::class, 'update'])->name('update.surat');
+
+
 });

@@ -27,6 +27,7 @@
                     <td>{{ $history->surat->nomor_surat ?? '-' }}</td>
                     <td>{{ \Carbon\Carbon::parse($history->waktu_aksi)->format('d-m-Y H:i') }}</td>
                     <td>
+                        <a href="{{ route('edit.surat', $history->surat->id) }}" class="btn btn-warning btn-sm">Edit</a>
                         <a href="{{ route('cetak.surat', ['id' => $history->surat->id, 'format' => 'pdf']) }}" class="btn btn-danger btn-sm">PDF</a>
                         <a href="{{ route('cetak.surat', ['id' => $history->surat->id, 'format' => 'docx']) }}" class="btn btn-primary btn-sm">Word</a>
                     </td>

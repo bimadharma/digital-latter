@@ -111,42 +111,38 @@ class SuratController extends Controller
                 // Update isiData agar path signature tersimpan di database
                 $isiData[$key] = $path;
             } elseif (is_array($value)) {
-                // Cek jika ini array berisi array biasa (tabel-baru)
-                if (isset($value[0]) && is_array($value[0]) && !isset($value[0]['rows'])) {
+                // Cek jika array berisi tabel biasa
+                if (isset($value[0]) && is_array($value[0]) && !isset($value[0]['group_title'])) {
                     $firstColumnKey = array_key_first($value[0]);
                     foreach ($value as $index => &$row) {
                         $row['no'] = $index + 1;
                     }
                     $templateProcessor->cloneRowAndSetValues($firstColumnKey, $value);
 
-                    // Cek jika ini grouped_table
-                } elseif (isset($value[0]['rows'])) {
-                    $mergedRows = [];
-                    $allKeys = []; // Kumpulan semua key dari rows
+                    // Cek jika grouped_table
+                } elseif (isset($value[0]['group_title']) && is_array($value[0])) {
+                    $tabelFinal = [];
 
-                    foreach ($value as $groupItem) {
-                        $groupTitle = $groupItem['group_title'] ?? '';
+                    foreach ($value as $group) {
+                        $rowCount = count($group['test_script']);
 
-                        foreach ($groupItem['rows'] ?? [] as $row) {
-                            // Tambahkan group_title dan no
-                            $row['group_title'] = $groupTitle;
-                            $row['no'] = count($mergedRows) + 1;
-                            $mergedRows[] = $row;
+                        for ($i = 0; $i < $rowCount; $i++) {
+                            $rowData = [
+                                'no' => count($tabelFinal) + 1,
+                                'group_title' => $group['group_title'],
+                            ];
 
-                            // Simpan semua key agar bisa cloneRow dinamis
-                            foreach ($row as $key => $val) {
-                                $allKeys[$key] = true;
+                            foreach ($group as $fieldKey => $fieldValue) {
+                                if ($fieldKey === 'group_title') continue;
+                                $rowData[$fieldKey] = $fieldValue[$i] ?? '';
                             }
+
+                            $tabelFinal[] = $rowData;
                         }
                     }
 
-                    if (!empty($mergedRows)) {
-                        // Ambil key pertama untuk cloneRowAndSetValues
-                        $firstKey = array_key_first($mergedRows[0]);
-                        // Dump isi data untuk dicek
-                        dd($mergedRows);
-                        $templateProcessor->cloneRowAndSetValues($firstKey, $mergedRows);
-                    }
+                    $firstColumnKey = 'no';
+                    $templateProcessor->cloneRowAndSetValues($firstColumnKey, $tabelFinal);
                 }
             } else {
                 $templateProcessor->setValue($key, str_replace("\n", '<w:br/>', $value));
@@ -196,7 +192,7 @@ class SuratController extends Controller
             'surat_id' => $surat->id,
             'user_id' => Auth::id(),
             'aksi' => $request->input('nama_surat', $jenisSurat->nama_jenis),
-            'waktu_aksi' => now(),
+            'waktu_aksi'  => $surat->updated_at,
         ]);
 
         return redirect('/history')->with('success', 'Surat berhasil disimpan dan file berhasil dikonversi ke PDF.');
@@ -234,5 +230,133 @@ class SuratController extends Controller
         }
 
         abort(404, 'File tidak ditemukan.');
+    }
+
+    public function edit($id)
+    {
+        $surat = Surat::with('jenisSurat')->findOrFail($id);
+        $jenis = $surat->jenisSurat->kode_jenis;
+        $templateFields = $surat->jenisSurat->template_fields;
+        $isiData = json_decode($surat->isi_data, true);
+        $jenisSurat = $surat->jenisSurat;
+
+        // Ambil baris pertama dari HistorySurat berdasarkan surat_id
+        $history = HistorySurat::where('surat_id', $id)->first();
+        $aksi = $history ? $history->aksi : null;
+
+        return view('pages.form.form-edit', compact('surat', 'jenis', 'templateFields', 'isiData', 'jenisSurat', 'aksi'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $surat = Surat::with('jenisSurat')->findOrFail($id);
+        $jenisSurat = $surat->jenisSurat;
+
+        // Data lama
+        $oldIsiData = json_decode($surat->isi_data, true);
+        $templateFields = $jenisSurat->template_fields;
+
+        // Kumpulkan field signature
+        $signatureFields = [];
+        foreach ($templateFields as $section) {
+            foreach ($section['fields'] as $field) {
+                if ($field['field_type'] === 'signature') {
+                    $signatureFields[] = $field['field_name'];
+                }
+            }
+        }
+
+        // Ambil input
+        $isiData = $request->except(['_token', '_method', 'aksi']);
+
+        // Tangani file upload baru
+        foreach ($signatureFields as $field) {
+            if ($request->hasFile($field)) {
+                $filePath = $request->file($field)->store('signatures', 'public');
+                $isiData[$field] = $filePath;
+            } elseif (isset($oldIsiData[$field])) {
+                $isiData[$field] = $oldIsiData[$field];
+            }
+        }
+
+        // 1. Siapkan template processor
+        $templatePath = storage_path('app/public/' . $jenisSurat->template_file);
+        if (!file_exists($templatePath)) {
+            return back()->with('error', 'Template tidak ditemukan.');
+        }
+
+        $templateProcessor = new TemplateProcessor($templatePath);
+
+        // 2. Isi template dengan data yang diperbarui
+        foreach ($isiData as $key => $value) {
+            if (is_array($value)) {
+                if (isset($value[0]) && is_array($value[0]) && !isset($value[0]['group_title'])) {
+                    $firstColumnKey = array_key_first($value[0]);
+                    foreach ($value as $index => &$row) {
+                        $row['no'] = $index + 1;
+                    }
+                    $templateProcessor->cloneRowAndSetValues($firstColumnKey, $value);
+                } elseif (isset($value[0]['group_title'])) {
+                    $tabelFinal = [];
+                    foreach ($value as $group) {
+                        for ($i = 0; $i < count($group['test_script']); $i++) {
+                            $rowData = [
+                                'no' => count($tabelFinal) + 1,
+                                'group_title' => $group['group_title'],
+                            ];
+                            foreach ($group as $fieldKey => $fieldValue) {
+                                if ($fieldKey !== 'group_title') {
+                                    $rowData[$fieldKey] = $fieldValue[$i] ?? '';
+                                }
+                            }
+                            $tabelFinal[] = $rowData;
+                        }
+                    }
+                    $templateProcessor->cloneRowAndSetValues('no', $tabelFinal);
+                }
+            } elseif (in_array($key, $signatureFields)) {
+                $imagePath = storage_path('app/public/' . $value);
+                if (file_exists($imagePath)) {
+                    $templateProcessor->setImageValue($key, [
+                        'path' => $imagePath,
+                        'width' => 170,
+                        'height' => 113,
+                        'ratio' => true,
+                    ]);
+                }
+            } else {
+                $templateProcessor->setValue($key, str_replace("\n", '<w:br/>', $value));
+            }
+        }
+
+        // 3. Simpan file dengan nama yang sama seperti sebelumnya
+        $docxPath = storage_path('app/public/' . $surat->file_docx);
+        $pdfPath = storage_path('app/public/' . $surat->file_pdf);
+
+        // Simpan ulang DOCX
+        $templateProcessor->saveAs($docxPath);
+
+        // Konversi ulang ke PDF
+        $command = '"C:\\Program Files\\LibreOffice\\program\\soffice.exe" --headless --convert-to pdf --outdir '
+            . escapeshellarg(dirname($pdfPath)) . ' '
+            . escapeshellarg($docxPath);
+        exec($command, $output, $resultCode);
+
+        // 4. Update DB
+        $surat->update([
+            'isi_data' => json_encode($isiData),
+        ]);
+
+        // Update history
+        HistorySurat::updateOrCreate(
+            ['surat_id' => $surat->id],
+            [
+                'aksi' => $request->input('aksi'),
+                'waktu_aksi' => $surat->updated_at,
+                'user_id' => Auth::id(),
+            ]
+        );
+
+        return redirect('/history')->with('success', 'Surat dan file berhasil diperbarui.');
     }
 }

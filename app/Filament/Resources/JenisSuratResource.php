@@ -45,50 +45,50 @@ class JenisSuratResource extends Resource
                     ])
                     ->getUploadedFileNameForStorageUsing(fn(TemporaryUploadedFile $file) => $file->getClientOriginalName())
                     ->required()
-                    ->helperText('Unggah file template dalam format .doc atau .docx saja.')
-                    ->afterStateUpdated(function (callable $set, callable $get, $state) {
+                    ->helperText('Unggah file template dalam format .doc atau .docx saja.'),
+                    // ->afterStateUpdated(function (callable $set, callable $get, $state) {
         
-                        if (!$state instanceof TemporaryUploadedFile) {
-                            return;
-                        }
+                    //     if (!$state instanceof TemporaryUploadedFile) {
+                    //         return;
+                    //     }
 
-                        $path = $state->getRealPath();
-                        $zip = new ZipArchive;
+                    //     $path = $state->getRealPath();
+                    //     $zip = new ZipArchive;
 
-                        if ($zip->open($path) === true) {
-                            $xml = $zip->getFromName('word/document.xml');
-                            $zip->close();
+                    //     if ($zip->open($path) === true) {
+                    //         $xml = $zip->getFromName('word/document.xml');
+                    //         $zip->close();
 
-                            // Gabungkan semua isi <w:t>
-                            preg_match_all('/<w:t[^>]*>(.*?)<\/w:t>/', $xml, $textMatches);
-                            $fullText = implode('', $textMatches[1]);
+                    //         // Gabungkan semua isi <w:t>
+                    //         preg_match_all('/<w:t[^>]*>(.*?)<\/w:t>/', $xml, $textMatches);
+                    //         $fullText = implode('', $textMatches[1]);
 
-                            // Ambil placeholder ${...} dari teks gabungan
-                            preg_match_all('/\$\{\s*([a-zA-Z0-9_\-\s]+)\}/', $fullText, $matches);
-                            $keys = array_unique(array_map('trim', $matches[1]));
+                    //         // Ambil placeholder ${...} dari teks gabungan
+                    //         preg_match_all('/\$\{\s*([a-zA-Z0-9_\-\s]+)\}/', $fullText, $matches);
+                    //         $keys = array_unique(array_map('trim', $matches[1]));
 
-                            if (count($keys) > 0) {
-                                $fields = [];
+                    //         if (count($keys) > 0) {
+                    //             $fields = [];
 
-                                foreach ($keys as $key) {
-                                    $fields[] = [
-                                        'field_name' => $key,
-                                        'field_type' => 'text',
-                                        'columns' => [],
-                                    ];
-                                }
+                    //             foreach ($keys as $key) {
+                    //                 $fields[] = [
+                    //                     'field_name' => $key,
+                    //                     'field_type' => 'text',
+                    //                     'columns' => [],
+                    //                 ];
+                    //             }
 
-                                // Set template_fields kosong dulu agar Livewire reset state-nya
-                                $set('template_fields', []);
+                    //             // Set template_fields kosong dulu agar Livewire reset state-nya
+                    //             $set('template_fields', []);
 
-                                // Paksa render ulang dengan memberi nilai baru
-                                $set('template_fields', [[
-                                    'section_title' => 'Isi Form',
-                                    'fields' => $fields,
-                                ]]);
-                            }
-                        }
-                    }),
+                    //             // Paksa render ulang dengan memberi nilai baru
+                    //             $set('template_fields', [[
+                    //                 'section_title' => 'Isi Form',
+                    //                 'fields' => $fields,
+                    //             ]]);
+                    //         }
+                    //     }
+                    // }),
 
                 Forms\Components\Repeater::make('template_fields')
                     ->label('Bagian Template')

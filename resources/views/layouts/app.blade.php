@@ -30,7 +30,6 @@
     <script src="{{ asset('js/dataTables.bootstrap5.min.js') }}"></script>
     @yield('scripts')
     @stack('scripts')
-
 </body>
 
 </html>

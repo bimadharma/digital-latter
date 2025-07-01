@@ -15,7 +15,7 @@
             <form method="POST" action="{{ route('login.action') }}">
                 @csrf
                 <div class="mb-3">
-                    <input type="text" name="email" placeholder="email" required class="form-control rounded-pill" style="font-family: 'FontAwesome', 'Arial';">
+                    <input type="text" name="email" placeholder="Email" required class="form-control rounded-pill" style="font-family: 'FontAwesome', 'Arial';">
                 </div>
                 <div class="mb-3">
                     <input type="password" name="password" placeholder="Password" required class="form-control rounded-pill" style="font-family: 'FontAwesome', 'Arial';">

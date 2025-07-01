@@ -19,7 +19,6 @@ class HistorySurat extends Model
     ];
 
     public $timestamps = false;
-    // app/Models/HistorySurat.php
 
     public function surat()
     {
