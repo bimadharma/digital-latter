@@ -14,10 +14,10 @@
             {{-- Kolom Konten --}}
             <div class="col-md-6 order-2 order-md-1">
                 <h1 class="fw-bold" style="color: #507dae;">D-SURATX – Digitalisasi Form Surat Eximbank</h1>
-                <p class="lead">Kelola, isi, dan unduh surat resmi dengan cepat dan praktis dalam satu aplikasi terintegrasi</p>
+                <p class="lead">Kelola, isi, dan unduh surat resmi dengan cepat dan praktis</p>
                 <hr>
                 <p class="mt-3 small">
-                    <strong>D-SURATX</strong> adalah aplikasi web untuk mempermudah administrasi surat di instansi, sekolah, atau organisasi. Pengguna bisa mengisi formulir, menyimpan riwayat, dan mengunduh surat PDF tanpa Microsoft Word.
+                    <strong>D-SURATX</strong> adalah aplikasi web untuk mempermudah pembuatan surat di Eximbank. Pengguna bisa mengisi formulir, menyimpan riwayat, dan mengunduh surat PDF dan Microsoft Word.
                 </p>
 
                 <div class="row mt-4">
@@ -52,7 +52,7 @@
     <hr>
     <div class="row justify-content-center mb-4">
         <div class="col-md-6">
-            <form method="GET" action="{{ route('pages.index') }}">
+            <form method="GET" action="{{ route('dashboard') }}">
                 <div class="input-group">
                     <input type="text" name="search" value="{{ request('search') }}" class="form-control rounded-start-pill" placeholder="Cari jenis surat...">
                     <button class="btn btn-primary rounded-end-pill" type="submit">

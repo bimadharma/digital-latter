@@ -12,7 +12,7 @@
         </div>
 
         {{-- FORM --}}
-        <form method="POST" enctype="multipart/form-data" action="{{ route('submit.laporan', ['jenis' => $jenis]) }}" class="bg-white p-3" id="form-surat">
+        <form method="POST" enctype="multipart/form-data" action="{{ route('surat.store', ['jenis' => $jenis]) }}" class="bg-white p-3" id="form-surat">
             @csrf
 
             @php
@@ -52,7 +52,7 @@
                 @elseif ($field['field_type'] === 'textarea')
                 <div class="mb-3">
                     <label class="form-label fw-semibold small" for="{{ $fieldName }}">{{ $fieldLabel }} <span class="text-danger">*</span></label>
-                    <textarea name="{{ $fieldName }}" id="{{ $fieldName }}" rows="5" class="form-control" placeholder="Tulis {{ $fieldLabel }} di sini..."></textarea>
+                    <textarea name="{{ $fieldName }}" id="{{ $fieldName }}" rows="5" class="form-control" placeholder="Tulis {{ $fieldLabel }} di sini..." required></textarea>
                 </div>
 
                 {{-- SIGNATURE --}}
@@ -79,7 +79,7 @@
                             <tr data-repeater-item>
                                 @foreach ($field['columns'] as $col)
                                 <td>
-                                    <input type="text" name="{{ $fieldName }}[0][{{ $col['column_name'] }}]" class="form-control form-control-sm" placeholder="{{ formatLabel($col['column_name']) }}">
+                                    <input type="text" name="{{ $fieldName }}[0][{{ $col['column_name'] }}]" class="form-control form-control-sm" placeholder="{{ formatLabel($col['column_name']) }}" required>
                                 </td>
                                 @endforeach
                                 <td>
@@ -103,8 +103,8 @@
                         <div class="group border rounded p-3 mb-3">
                             <!-- Group Title -->
                             <div class="form-group mb-3">
-                                <label>Group Title</label>
-                                <input type="text" name="{{ $field['field_name'] }}[0][group_title]" class="form-control" placeholder="{{ formatLabel('group_title') }}">
+                                <label>Group Title <span class="text-danger">*</span></label>
+                                <input type="text" name="{{ $field['field_name'] }}[0][group_title]" class="form-control" placeholder="{{ formatLabel('group_title') }}" required>
                             </div>
 
                             <!-- Rows Table -->
@@ -112,7 +112,7 @@
                                 <thead>
                                     <tr>
                                         @foreach ($field['grouped_columns'][0]['rows'] as $row)
-                                        <th>{{ $row['value1'] }}</th>
+                                        <th>{{ $row['value1'] }} <span class="text-danger">*</span></th>
                                         @endforeach
                                         <th>Aksi</th>
                                     </tr>
@@ -121,7 +121,7 @@
                                     <tr class="row-item">
                                         @foreach ($field['grouped_columns'][0]['rows'] as $row)
                                         <td>
-                                            <input type="text" name="{{ $field['field_name'] }}[0][{{ $row['value1'] }}][]" class="form-control" placeholder="{{ formatLabel($row['value1']) }}">
+                                            <input type="text" name="{{ $field['field_name'] }}[0][{{ $row['value1'] }}][]" class="form-control" placeholder="{{ formatLabel($row['value1']) }}" required>
                                         </td>
                                         @endforeach
                                         <td>
@@ -145,6 +145,10 @@
                 <button type="submit" class="btn btn-success px-4 rounded-pill shadow-sm transition-all">
                     <i class="bi bi-send"></i> Submit
                 </button>
+                {{-- TOMBOL PREVIEW BARU --}}
+                <button type="button" id="preview-button" class="btn btn-info px-4 rounded-pill shadow-sm">
+                    <i class="bi bi-eye"></i> Preview Surat
+                </button>
                 <a href="{{ url()->previous() }}" class="btn btn-outline-secondary rounded-pill">
                     <i class="bi bi-arrow-left"></i> Kembali
                 </a>
@@ -161,6 +165,21 @@
         <span class="visually-hidden">Loading...</span>
     </div>
     <h5 class="text-muted">Sedang diproses surat...</h5>
+</div>
+
+{{-- MODAL BARU UNTUK MENAMPILKAN PREVIEW PDF --}}
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">Preview Surat</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <iframe id="pdf-preview-frame" src="" style="width: 100%; height: 75vh;" frameborder="0"></iframe>
+            </div>
+        </div>
+    </div>
 </div>
 
 @endsection
@@ -214,6 +233,61 @@
         });
     });
 </script>
+
+{{-- SCRIPT BARU UNTULO PREVIEW AJAX (TANPA OVERLAY) --}}
+<script>
+$(document).ready(function() {
+    $('#preview-button').on('click', function(event) {
+        event.preventDefault();
+
+        const form = $('#form-surat')[0];
+        const formData = new FormData(form);
+        const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+        const pdfFrame = $('#pdf-preview-frame');
+
+        // Referensi ke tombol preview itu sendiri
+        const previewButton = $(this);
+        // Simpan teks asli tombol
+        const originalButtonText = previewButton.html();
+
+        $.ajax({
+            url: "{{ route('surat.preview', ['jenis' => $jenis]) }}",
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            xhrFields: {
+                responseType: 'blob'
+            },
+            // SEBELUM AJAX DIKIRIM
+            beforeSend: function() {
+                // Nonaktifkan tombol dan tampilkan spinner
+                previewButton.prop('disabled', true);
+                previewButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memproses...');
+            },
+            // JIKA SUKSES
+            success: function(response) {
+                const pdfBlob = new Blob([response], { type: 'application/pdf' });
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                pdfFrame.attr('src', pdfUrl);
+                previewModal.show();
+            },
+            // JIKA GAGAL
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error("Error: ", textStatus, errorThrown);
+                alert('Gagal membuat preview. Pastikan Group Title terisi.');
+            },
+            // SETELAH AJAX SELESAI (BAIK SUKSES MAUPUN GAGAL)
+            complete: function() {
+                // Kembalikan tombol ke kondisi semula
+                previewButton.prop('disabled', false);
+                previewButton.html(originalButtonText);
+            }
+        });
+    });
+});
+</script>
+
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {

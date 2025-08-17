@@ -12,7 +12,7 @@
         </div>
 
         {{-- FORM --}}
-        <form id="form-surat" method="POST" enctype="multipart/form-data" action="{{ route('update.surat', $surat->id) }}" class="bg-white p-3">
+        <form id="form-surat" method="POST" enctype="multipart/form-data" action="{{ route('surat.update', $surat->id) }}" class="bg-white p-3">
             @csrf
             @method('PUT') {{-- Ini akan membuat Laravel menganggap ini PUT --}}
 

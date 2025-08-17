@@ -1,28 +1,31 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
     <div class="container">
         <a class="navbar-brand fw-bold" href="{{ url('/') }}">
-            <img src="{{ asset('images/logo.png') }}" alt="Logo" width="180" height="50" class="d-inline-block align-text-top p-1">
+            <img src="{{ asset('images/logo.png') }}" alt="Logo" width="180" height="50" class="p-1">
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
 
         <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-            <ul class="navbar-nav">
+            <ul class="navbar-nav align-items-center">
                 <li class="nav-item">
-                    <a class="nav-link text-dark" href="{{ url('/') }}">Home</a>
+                    <a class="nav-link {{ Request::is('/') ? 'active-custom' : 'text-dark' }}" href="{{ url('/') }}">Home</a>
                 </li>
-                <!-- Cek jika pengguna sudah login -->
+
                 @if(Auth::check())
                 <li class="nav-item">
-                    <a class="nav-link text-dark" href="{{ url('/history') }}">History</a>
+                    <a class="nav-link {{ Request::is('history') ? 'active-custom' : 'text-dark' }}" href="{{ url('/history') }}">History</a>
                 </li>
                 <li class="nav-item">
-                    <a class="btn btn-danger text-white mx-2 p-2" href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">Logout</a>
+                    <a class="nav-link {{ Request::is('Guide') ? 'active-custom' : 'text-dark' }}" href="{{ url('/Guide') }}">Guide</a>
+                </li>
+                <li class="nav-item">
+                    <a class="btn btn-outline-danger mx-2 px-3 py-2" href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">Logout</a>
                 </li>
                 @else
                 <li class="nav-item">
-                    <a class="nav-link text-dark" href="{{ url('/login') }}">Login</a>
+                    <a class="nav-link {{ Request::is('login') ? 'active-custom' : 'text-dark' }}" href="{{ url('/login') }}">Login</a>
                 </li>
                 @endif
             </ul>
